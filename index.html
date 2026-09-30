@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Image of the Day</title>
+<meta name="description" content="One photograph a day, chosen from the day's newspaper front pages. A project by Jacopo Natoli.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #000000;
+    --pad: clamp(12px, 2.4vh, 28px);
+    --date: 28px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); }
+  body {
+    display: flex;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* IMAGE OF THE DAY, one letter under the other, stretched to the height of the images */
+  .title {
+    flex: 0 0 auto;
+    width: clamp(30px, 4.5vw, 56px);
+    padding: var(--pad) 0 calc(var(--pad) + var(--date));
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    font-size: clamp(10px, 1.5vh, 14px);
+    font-weight: 400;
+    line-height: 1;
+    user-select: none;
+  }
+  .title i { font-style: normal; display: block; height: 1em; }
+
+  .strip {
+    flex: 1 1 auto;
+    display: flex;
+    gap: clamp(16px, 3vw, 48px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: var(--pad) var(--pad) var(--pad) 0;
+    scrollbar-width: none;
+    outline: none;
+  }
+  .strip::-webkit-scrollbar { display: none; }
+
+  figure { flex: 0 0 auto; height: 100%; display: flex; flex-direction: column; }
+  figure img { display: block; height: calc(100% - var(--date)); width: auto; max-width: none; }
+  figcaption {
+    height: var(--date);
+    display: flex;
+    align-items: flex-end;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .empty { align-self: center; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1 class="title" aria-label="Image of the day">
+    <i>I</i><i>M</i><i>A</i><i>G</i><i>E</i><i></i><i>O</i><i>F</i><i></i><i>T</i><i>H</i><i>E</i><i></i><i>D</i><i>A</i><i>Y</i>
+  </h1>
+  <main class="strip" id="strip" tabindex="0"></main>
+
+<script>
+  const strip = document.getElementById('strip');
+  const fmt = iso => { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
+
+  fetch('days.json', { cache: 'no-store' })
+    .then(r => (r.ok ? r.json() : []))
+    .catch(() => [])
+    .then(days => {
+      if (!days.length) {
+        strip.innerHTML = '<p class="empty">The first image arrives at midnight.</p>';
+        return;
+      }
+      days.sort((a, b) => (a.date < b.date ? 1 : -1)); // newest first, scroll right to go back in time
+      days.forEach((d, i) => {
+        const fig = document.createElement('figure');
+        const img = new Image();
+        if (d.w && d.h) { img.width = d.w; img.height = d.h; }
+        if (i > 2) img.loading = 'lazy';
+        img.decoding = 'async';
+        img.src = d.src;
+        img.alt = `Photo of ${fmt(d.date)}` + (d.paper ? `, from the front page of ${d.paper}` : '');
+        const cap = document.createElement('figcaption');
+        cap.textContent = fmt(d.date);
+        fig.append(img, cap);
+        strip.append(fig);
+      });
+    });
+
+  // vertical mouse wheel scrolls the row sideways
+  strip.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      strip.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+  }, { passive: false });
+  strip.focus({ preventScroll: true });
+</script>
+</body>
+</html>
